@@ -47,26 +47,26 @@ class LMSCoursewareLinkClickedTaskMapTest(MapperTestMixin, InitializeOpaqueKeysM
         }
         self.default_event_template = 'link_clicked_event'
 
-        self.expected_key = (self.course_id)
+        self.expected_key = (self.course_id, self.datestamp)
 
     def test_non_link_event(self):
         line = 'this is garbage'
         self.assert_no_map_output_for(line)
 
     def test_unparseable_enrollment_event(self):
-        line = 'this is garbage but contains edx.ui.lms.link_clicked'
+        line = 'this is garbage but contains {}'.format(LINK_CLICKED)
         self.assert_no_map_output_for(line)
 
     def test_link_clicked_event_count_per_course(self):
         line = self.create_event_log_line()
-        self.assert_single_map_output(line, self.course_id, (self.datestamp, 0))
+        self.assert_single_map_output(line, (self.course_id, self.datestamp), 1)
 
     def test_internal_link_clicked_event_count(self):
         line = self.create_event_log_line(event={
                                           "current_url": "http://courses.edx.org/blah",
                                           "target_url": "https://courses.edx.org/blargh"
                                           })
-        self.assert_single_map_output(line, self.course_id, (self.datestamp, 1))
+        self.assert_single_map_output(line, (self.course_id, self.datestamp), 0)
 
 
 class LinkClickedEventMapTask(InitializeLegacyKeysMixin, unittest.TestCase):
@@ -86,7 +86,7 @@ class LinkClickedTaskReducerTest(ReducerTestMixin, unittest.TestCase):
         self.user_id = 0
         self.course_id = 'foo/bar/baz'
         self.datestamp = "2013-12-17"
-        self.reduce_key = self.course_id
+        self.reduce_key = (self.course_id, self.datestamp)
 
     def test_no_events(self):
         self._check_output_complete_tuple([], ())
@@ -100,37 +100,16 @@ class LinkClickedTaskReducerTest(ReducerTestMixin, unittest.TestCase):
         )
 
     def test_multiple_events_for_course(self):
-        inputs = [
-            (self.datestamp, 0),
-            (self.datestamp, 0),
-            (self.datestamp, 0),
-            (self.datestamp, 0),
-            (self.datestamp, 1),
-            (self.datestamp, 1),
-            (self.datestamp, 1),
-        ]
+        inputs = [1, 1, 1, 1, 0, 0, 0]
         expected = ((self.course_id, self.datestamp, 4, 7),)
         self._check_output_complete_tuple(inputs, expected)
 
     def test_external_events_only(self):
-        inputs = [
-            (self.datestamp, 0),
-            (self.datestamp, 0),
-            (self.datestamp, 0),
-            (self.datestamp, 0),
-            (self.datestamp, 0),
-            (self.datestamp, 0),
-            (self.datestamp, 0),
-            (self.datestamp, 0),
-        ]
+        inputs = [1, 1, 1, 1, 1, 1, 1, 1]
         expected = ((self.course_id, self.datestamp, 8, 8),)
         self._check_output_complete_tuple(inputs, expected)
 
     def test_internal_events_only(self):
-        inputs = [
-            (self.datestamp, 1),
-            (self.datestamp, 1),
-            (self.datestamp, 1),
-        ]
+        inputs = [0, 0, 0]
         expected = ((self.course_id, self.datestamp, 0, 3),)
         self._check_output_complete_tuple(inputs, expected)

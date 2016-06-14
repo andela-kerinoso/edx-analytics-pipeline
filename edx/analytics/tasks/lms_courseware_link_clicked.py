@@ -18,8 +18,8 @@ LINK_CLICKED = 'edx.ui.lms.link_clicked'
 
 class LMSCoursewareLinkClickedTask(EventLogSelectionMixin, MapReduceJobTask):
     """
-    Produce a data set that shows how many users clicked to a new page in each course.
-    Includes whether the click was within the edX courseware or to an external site.
+    Produces a data set that shows how many users clicked to a new page in each course,
+    including whether the click was within the edX courseware or to an external site.
     """
 
     output_root = luigi.Parameter()
@@ -27,11 +27,15 @@ class LMSCoursewareLinkClickedTask(EventLogSelectionMixin, MapReduceJobTask):
     enable_direct_output = True
 
     def mapper(self, line):
+        # We only want to consider lines that include the type of event with which we are concerned.
+        if LINK_CLICKED not in line:
+            return
+
         value = self.get_event_and_date_string(line)
 
         if value is None:
             return
-        event, _date_string = value
+        event, date_string = value
 
         event_type = event.get('event_type')
         if event_type is None:
@@ -39,11 +43,6 @@ class LMSCoursewareLinkClickedTask(EventLogSelectionMixin, MapReduceJobTask):
             return
 
         if event_type != LINK_CLICKED:
-            return
-
-        timestamp = eventlog.get_event_time_string(event)
-        if timestamp is None:
-            log.error("encountered event with bad timestamp: %s", event)
             return
 
         event_data = eventlog.get_event_data(event)
@@ -58,32 +57,35 @@ class LMSCoursewareLinkClickedTask(EventLogSelectionMixin, MapReduceJobTask):
         target_url = event_data.get('target_url')
         if target_url is None:
             log.error("encountered explicit link_clicked event with no target_url: %s", event)
+            return
 
         current_url = event_data.get('current_url')
         if target_url is None:
             log.error("encountered explicit link_clicked event with no current_url: %s", event)
+            return
 
-        # a link is considered "internal" when it does not navigate away from the current host
-        is_internal = 0
-        if urlparse(target_url).netloc == urlparse(current_url).netloc:
-            is_internal = 1
+        # A link is considered "internal" when it does not navigate away from the current host.
+        current_loc = urlparse(current_url).netloc
+        target_loc = urlparse(target_url).netloc
+        if current_loc == "" or target_loc == "":
+            return
 
-        yield (course_id), (eventlog.timestamp_to_datestamp(timestamp), is_internal)
+        is_external = current_loc != target_loc
+
+        yield (course_id, date_string), (is_external)
 
     def reducer(self, key, values):
         """
-        Emit the number of clicks for each course for each day with a click, and how many of the clicks
-        were to external links
+        Emits the number of clicks for each course for each day with a click, and how many of the clicks
+        were to external links.
         """
-        course_id = key
+        course_id, datestamp = key
         date_to_click_count = defaultdict(int)
         date_to_external_click_count = defaultdict(int)
         for val in values:
-            timestamp, is_internal = val
-            date_to_click_count[timestamp] += 1
-
-            if not is_internal:
-                date_to_external_click_count[timestamp] += 1
+            is_external = val
+            date_to_click_count[datestamp] += 1
+            date_to_external_click_count[datestamp] += is_external
 
         for date in date_to_click_count.keys():
             yield (course_id, date, date_to_external_click_count[date], date_to_click_count[date])
