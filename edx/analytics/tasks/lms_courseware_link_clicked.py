@@ -10,6 +10,7 @@ from edx.analytics.tasks.mapreduce import MapReduceJobTask
 from edx.analytics.tasks.pathutil import EventLogSelectionMixin
 from edx.analytics.tasks.url import get_target_from_url, url_path_join
 from edx.analytics.tasks.util import eventlog, opaque_key_util
+from edx.analytics.tasks.vertica_load import VerticaCopyTask
 
 
 log = logging.getLogger(__name__)
@@ -60,7 +61,7 @@ class LMSCoursewareLinkClickedTask(EventLogSelectionMixin, MapReduceJobTask):
             return
 
         current_url = event_data.get('current_url')
-        if target_url is None:
+        if current_url is None:
             log.error("encountered explicit link_clicked event with no current_url: %s", event)
             return
 
@@ -102,3 +103,32 @@ class LMSCoursewareLinkClickedTask(EventLogSelectionMixin, MapReduceJobTask):
             output_target.remove()
 
         super(LMSCoursewareLinkClickedTask, self).run()
+
+class PushToVerticaLMSCoursewareLinkClickedTask(VerticaCopyTask):
+    """Push the LMS courseware link clicked task data to Vertica."""
+    output_root = luigi.Parameter()
+    interval = luigi.DateIntervalParameter()
+    n_reduce_tasks = luigi.Parameter()
+    events_list_file_path = luigi.Parameter(default=None)
+
+    @property
+    def table(self):
+        return "event_type_distribution"
+
+    @property
+    def columns(self):
+        return [
+            ('course_id', 'VARCHAR(255)'),
+            ('event_date', 'DATETIME'),
+            ('external_link_clicked_events', 'INT'),
+            ('link_clicked_events', 'INT'),
+        ]
+
+    @property
+    def insert_source_task(self):
+        return LMSCoursewareLinkClickedTask(
+            output_root=self.output_root,
+            interval=self.interval,
+            n_reduce_tasks=self.n_reduce_tasks,
+            events_list_file_path=self.events_list_file_path
+        )
