@@ -68,6 +68,13 @@ class LMSCoursewareLinkClickedTaskMapTest(MapperTestMixin, InitializeOpaqueKeysM
                                           })
         self.assert_single_map_output(line, (self.course_id, self.datestamp), 0)
 
+        line = self.create_event_log_line(event={
+            "current_url": "http://courses.edx.org/blah",
+            "target_url": "/internal/example"
+        })
+
+        self.assert_single_map_output(line, (self.course_id, self.datestamp), 0)
+
 
 class LinkClickedEventMapTask(InitializeLegacyKeysMixin, unittest.TestCase):
     pass

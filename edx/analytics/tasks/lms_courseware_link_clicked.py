@@ -48,6 +48,7 @@ class LMSCoursewareLinkClickedTask(EventLogSelectionMixin, MapReduceJobTask):
 
         event_data = eventlog.get_event_data(event)
         if event_data is None:
+            log.error("encountered explicit link_clicked event with no event data: %s", event)
             return
 
         course_id = event.get('context').get('course_id')
@@ -66,12 +67,11 @@ class LMSCoursewareLinkClickedTask(EventLogSelectionMixin, MapReduceJobTask):
             return
 
         # A link is considered "internal" when it does not navigate away from the current host.
+        # Some internal links exclude the host name entirely- they start with / so we account for that.
         current_loc = urlparse(current_url).netloc
         target_loc = urlparse(target_url).netloc
-        if current_loc == "" or target_loc == "":
-            return
 
-        is_external = current_loc != target_loc
+        is_external = current_loc != target_loc and target_loc is not ""
 
         yield (course_id, date_string), (is_external)
 
