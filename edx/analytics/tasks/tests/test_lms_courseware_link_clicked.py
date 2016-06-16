@@ -96,7 +96,7 @@ class LinkClickedTaskReducerTest(ReducerTestMixin, unittest.TestCase):
         self.reduce_key = (self.course_id, self.datestamp)
 
     def test_no_events(self):
-        self._check_output_complete_tuple([], ())
+        self._check_output_complete_tuple([], ((self.course_id, self.datestamp, 0, 0),))
 
     def create_link_clicked_task(self, interval='2013-01-01'):
         """Create a task for testing purposes."""

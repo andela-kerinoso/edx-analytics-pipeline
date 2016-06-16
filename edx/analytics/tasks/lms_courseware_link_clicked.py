@@ -81,15 +81,13 @@ class LMSCoursewareLinkClickedTask(EventLogSelectionMixin, MapReduceJobTask):
         were to external links.
         """
         course_id, datestamp = key
-        date_to_click_count = defaultdict(int)
-        date_to_external_click_count = defaultdict(int)
-        for val in values:
-            is_external = val
-            date_to_click_count[datestamp] += 1
-            date_to_external_click_count[datestamp] += is_external
+        click_count = 0
+        external_click_count = 0
+        for is_external in values:
+            click_count += 1
+            external_click_count += is_external
 
-        for date in date_to_click_count.keys():
-            yield (course_id, date, date_to_external_click_count[date], date_to_click_count[date])
+        yield (course_id, datestamp, external_click_count, click_count)
 
     def output(self):
         return get_target_from_url(self.output_root)
@@ -109,11 +107,10 @@ class PushToVerticaLMSCoursewareLinkClickedTask(VerticaCopyTask):
     output_root = luigi.Parameter()
     interval = luigi.DateIntervalParameter()
     n_reduce_tasks = luigi.Parameter()
-    events_list_file_path = luigi.Parameter(default=None)
 
     @property
     def table(self):
-        return "event_type_distribution"
+        return "lms_courseware_link_clicked_events"
 
     @property
     def columns(self):
@@ -129,6 +126,5 @@ class PushToVerticaLMSCoursewareLinkClickedTask(VerticaCopyTask):
         return LMSCoursewareLinkClickedTask(
             output_root=self.output_root,
             interval=self.interval,
-            n_reduce_tasks=self.n_reduce_tasks,
-            events_list_file_path=self.events_list_file_path
+            n_reduce_tasks=self.n_reduce_tasks
         )
