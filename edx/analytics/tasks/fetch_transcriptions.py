@@ -95,11 +95,13 @@ class FetchVideoTranscriptionsTask(LoadInternalReportingCourseMixin, luigi.Task)
         suffix = 'tsv'
         block_type = 'video'
         safe_course_id = get_filename_safe_course_id(course_id)
-        outfile_path = url_path_join(self.output_root, "{}_{}.{}".format(safe_course_id, block_type, suffix))
-        with open(outfile_path, "w") as outfile:
+        output_path = url_path_join(self.output_root, "{}_{}.{}".format(safe_course_id, block_type, suffix))
+        log.info('Writing output file: %s', output_path)
+        output_file_target = get_target_from_url(output_path)
+        with output_file_target.open('w') as output_file:
             for row in self.generate_course_video_data(course_id):
-                outfile.write(row.encode('utf8'))
-                outfile.write('\n')
+                output_file.write(row.encode('utf8'))
+                output_file.write('\n')
 
     def generate_course_list_from_file(self):
         with self.input().open('r') as input_file:
