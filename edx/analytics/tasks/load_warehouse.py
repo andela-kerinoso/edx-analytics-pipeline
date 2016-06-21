@@ -134,7 +134,7 @@ class LoadWarehouse(WarehouseMixin, luigi.WrapperTask):
             'warehouse_path': self.warehouse_path,
         }
 
-        #yield PreLoadWarehouseTask(schema=self.schema, credentials=self.credentials, marker_schema=self.marker_schema)
+        yield PreLoadWarehouseTask(schema=self.schema, credentials=self.credentials, marker_schema=self.marker_schema)
         yield (
             LoadInternalReportingCertificatesToWarehouse(
                 date=self.date,
@@ -170,7 +170,7 @@ class LoadWarehouse(WarehouseMixin, luigi.WrapperTask):
             #     **kwargs
             # )
         )
-        #yield PostLoadWarehouseTask(schema=self.schema, credentials=self.credentials, marker_schema=self.marker_schema)
+        yield PostLoadWarehouseTask(schema=self.schema, credentials=self.credentials, marker_schema=self.marker_schema)
 
     def output(self):
         return [task.output() for task in self.requires()]
