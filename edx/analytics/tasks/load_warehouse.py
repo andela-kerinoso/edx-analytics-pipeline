@@ -48,8 +48,8 @@ class SchemaManagementTask(luigi.Task):
 
     def run(self):
         connection = self.output().connect()
-        self.output().touch(connection)
         try:
+            self.output().touch(connection)
             for query in self.queries:
                 log.debug(query)
                 connection.cursor().execute(query)
