@@ -40,7 +40,6 @@ class SchemaManagementTask(VerticaCopyTaskMixin, luigi.Task):
     def run(self):
         connection = self.output().connect()
         try:
-            self.output().touch(connection)
             for query in self.queries:
                 log.debug(query)
                 connection.cursor().execute(query)
