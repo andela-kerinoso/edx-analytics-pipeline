@@ -138,5 +138,4 @@ class VerticaTarget(luigi.Target):
 
     def create_marker_schema(self, connection):
         query = "CREATE SCHEMA IF NOT EXISTS {marker_schema}".format(marker_schema=self.marker_schema)
-        log.debug(query)
         connection.cursor().execute(query)
