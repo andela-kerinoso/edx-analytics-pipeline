@@ -19,7 +19,16 @@ from edx.analytics.tasks.url import ExternalURL
 log = logging.getLogger(__name__)
 
 
-class SchemaManagementTask(VerticaCopyTaskMixin, luigi.Task):
+class SchemaManagementTask(luigi.Task):
+
+    schema = luigi.Parameter(
+        config_path={'section': 'vertica-export', 'name': 'schema'},
+        description='The schema to which to write.',
+    )
+    credentials = luigi.Parameter(
+        config_path={'section': 'vertica-export', 'name': 'credentials'},
+        description='Path to the external access credentials file.',
+    )
 
     marker_schema = luigi.Parameter()
 
@@ -81,6 +90,13 @@ class PreLoadWarehouseTask(SchemaManagementTask):
 class PostLoadWarehouseTask(SchemaManagementTask):
 
     priority = -100
+
+    overwrite = luigi.BooleanParameter(default=False)
+    date = luigi.DateParameter()
+    n_reduce_tasks = luigi.Parameter()
+
+    def requires(self):
+        return LoadWarehouse(date=self.date, n_reduce_tasks=self.n_reduce_tasks, schema=self.schema, credentials=self.credentials, overwrite=self.overwrite, marker_schema=self.marker_schema)
 
     @property
     def queries(self):
@@ -161,7 +177,6 @@ class LoadWarehouse(WarehouseMixin, luigi.WrapperTask):
                 **kwargs
             )
         )
-        yield PostLoadWarehouseTask(schema=self.schema, credentials=self.credentials, marker_schema=self.marker_schema)
 
     def output(self):
         return [task.output() for task in self.requires()]
