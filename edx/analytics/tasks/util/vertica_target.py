@@ -18,7 +18,7 @@ class VerticaTarget(luigi.Target):
     """
     marker_table = 'table_updates'
 
-    def __init__(self, host, user, password, schema, marker, table, update_id, read_timeout=None, marker_schema=None):
+    def __init__(self, host, user, password, schema, table, update_id, read_timeout=None, marker_schema=None):
         """
         Initializes a VerticaTarget instance.
 
