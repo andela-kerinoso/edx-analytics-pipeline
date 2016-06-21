@@ -46,7 +46,7 @@ class VerticaCopyTaskMixin(OverwriteOutputMixin):
     read_timeout = luigi.IntParameter(
         config_path={'section': 'vertica-export', 'name': 'read_timeout'}
     )
-    marker_schema = luigi.IntParameter(default=None)
+    marker_schema = luigi.Parameter(default=None)
 
 
 class VerticaCopyTask(VerticaCopyTaskMixin, luigi.Task):
