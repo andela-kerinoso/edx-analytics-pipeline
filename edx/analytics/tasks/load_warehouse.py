@@ -19,18 +19,9 @@ from edx.analytics.tasks.url import ExternalURL
 log = logging.getLogger(__name__)
 
 
-class SchemaManagementTask(luigi.Task):
+class SchemaManagementTask(VerticaCopyTaskMixin, luigi.Task):
 
-    schema = luigi.Parameter(
-        config_path={'section': 'vertica-export', 'name': 'schema'},
-        description='The schema to which to write.',
-    )
-    credentials = luigi.Parameter(
-        config_path={'section': 'vertica-export', 'name': 'credentials'},
-        description='Path to the external access credentials file.',
-    )
-
-    marker_schema = luigi.Parameter()
+    completed = False
 
     def __init__(self, *args, **kwargs):
         super(SchemaManagementTask, self).__init__(*args, **kwargs)
@@ -53,6 +44,7 @@ class SchemaManagementTask(luigi.Task):
             for query in self.queries:
                 log.debug(query)
                 connection.cursor().execute(query)
+            completed = True
         except Exception as exc:
             log.exception("Rolled back the transaction; exception raised: %s", str(exc))
             connection.rollback()
@@ -72,6 +64,8 @@ class SchemaManagementTask(luigi.Task):
     def update_id(self):
         return str(self)
 
+    def complete(self):
+        return completed
 
 
 class PreLoadWarehouseTask(SchemaManagementTask):
@@ -135,7 +129,7 @@ class LoadWarehouse(WarehouseMixin, luigi.WrapperTask):
             'warehouse_path': self.warehouse_path,
         }
 
-        yield PreLoadWarehouseTask(schema=self.schema, credentials=self.credentials, marker_schema=self.marker_schema)
+        yield PreLoadWarehouseTask(schema=self.schema, credentials=self.credentials, marker_schema=self.marker_schema, overwrite=True)
         yield (
             LoadInternalReportingCertificatesToWarehouse(
                 date=self.date,
@@ -171,7 +165,7 @@ class LoadWarehouse(WarehouseMixin, luigi.WrapperTask):
             #     **kwargs
             # )
         )
-        yield PostLoadWarehouseTask(schema=self.schema, credentials=self.credentials, marker_schema=self.marker_schema)
+        yield PostLoadWarehouseTask(schema=self.schema, credentials=self.credentials, marker_schema=self.marker_schema, overwrite=True)
 
     def output(self):
         return [task.output() for task in self.requires()]
