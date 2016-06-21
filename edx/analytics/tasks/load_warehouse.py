@@ -44,7 +44,7 @@ class SchemaManagementTask(VerticaCopyTaskMixin, luigi.Task):
             for query in self.queries:
                 log.debug(query)
                 connection.cursor().execute(query)
-            completed = True
+            self.completed = True
         except Exception as exc:
             log.exception("Rolled back the transaction; exception raised: %s", str(exc))
             connection.rollback()
@@ -65,7 +65,7 @@ class SchemaManagementTask(VerticaCopyTaskMixin, luigi.Task):
         return str(self)
 
     def complete(self):
-        return completed
+        return self.completed
 
 
 class PreLoadWarehouseTask(SchemaManagementTask):
