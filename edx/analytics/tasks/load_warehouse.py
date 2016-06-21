@@ -91,13 +91,6 @@ class PostLoadWarehouseTask(SchemaManagementTask):
 
     priority = -100
 
-    overwrite = luigi.BooleanParameter(default=False)
-    date = luigi.DateParameter()
-    n_reduce_tasks = luigi.Parameter()
-
-    def requires(self):
-        return LoadWarehouse(date=self.date, n_reduce_tasks=self.n_reduce_tasks, schema=self.schema, credentials=self.credentials, overwrite=self.overwrite, marker_schema=self.marker_schema)
-
     @property
     def queries(self):
         return [
@@ -141,7 +134,7 @@ class LoadWarehouse(WarehouseMixin, luigi.WrapperTask):
             'warehouse_path': self.warehouse_path,
         }
 
-        yield PreLoadWarehouseTask(schema=self.schema, credentials=self.credentials, marker_schema=self.marker_schema)
+        #yield PreLoadWarehouseTask(schema=self.schema, credentials=self.credentials, marker_schema=self.marker_schema)
         yield (
             LoadInternalReportingCertificatesToWarehouse(
                 date=self.date,
@@ -177,6 +170,7 @@ class LoadWarehouse(WarehouseMixin, luigi.WrapperTask):
             #     **kwargs
             # )
         )
+        #yield PostLoadWarehouseTask(schema=self.schema, credentials=self.credentials, marker_schema=self.marker_schema)
 
     def output(self):
         return [task.output() for task in self.requires()]
