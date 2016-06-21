@@ -18,7 +18,7 @@ class VerticaTarget(luigi.Target):
     """
     marker_table = 'table_updates'
 
-    def __init__(self, host, user, password, schema, table, update_id, read_timeout=None):
+    def __init__(self, host, user, password, schema, marker, table, update_id, read_timeout=None, marker_schema=None):
         """
         Initializes a VerticaTarget instance.
 
@@ -46,8 +46,12 @@ class VerticaTarget(luigi.Target):
         self.schema = schema
         self.table = table
         self.update_id = update_id
+
         # Default to using the schema data is being inserted into as the schema for the marker table.
-        self.marker_schema = schema
+        if marker_schema:
+            self.marker_schema = marker_schema
+        else:
+            self.marker_schema = schema
         self.read_timeout = read_timeout
 
     def touch(self, connection=None):
@@ -112,6 +116,7 @@ class VerticaTarget(luigi.Target):
         Using a separate connection since the transaction might have to be reset.
         """
         connection = self.connect(autocommit=True)
+        self.create_marker_schema(connection)
         cursor = connection.cursor()
         try:
             cursor.execute(
@@ -130,3 +135,8 @@ class VerticaTarget(luigi.Target):
             else:
                 raise
         connection.close()
+
+    def create_marker_schema(self, connection):
+        query = "CREATE SCHEMA IF NOT EXISTS {marker_schema}".format(marker_schema=self.marker_schema)
+        log.debug(query)
+        connection.cursor().execute(query)

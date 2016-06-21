@@ -21,7 +21,7 @@ log = logging.getLogger(__name__)
 
 class SchemaManagementTask(VerticaCopyTaskMixin, luigi.Task):
 
-    completed = False
+    marker_schema = luigi.Parameter()
 
     def __init__(self, *args, **kwargs):
         super(SchemaManagementTask, self).__init__(*args, **kwargs)
@@ -50,21 +50,19 @@ class SchemaManagementTask(VerticaCopyTaskMixin, luigi.Task):
             raise
         finally:
             connection.close()
-            self.completed = True
 
     def output(self):
         return CredentialFileVerticaTarget(
             credentials_target=self.input()['credentials'],
             table='',
             schema=self.schema,
-            update_id=self.update_id()
+            update_id=self.update_id(),
+            marker_schema=self.marker_schema
         )
 
     def update_id(self):
         return str(self)
 
-    def complete(self):
-        return self.completed
 
 
 class PreLoadWarehouseTask(SchemaManagementTask):
@@ -117,6 +115,8 @@ class LoadWarehouse(WarehouseMixin, luigi.WrapperTask):
 
     overwrite = luigi.BooleanParameter(default=False)
 
+    marker_schema = luigi.Parameter()
+
     def requires(self):
         kwargs = {
             'schema': self.schema + '_loading',
@@ -125,7 +125,7 @@ class LoadWarehouse(WarehouseMixin, luigi.WrapperTask):
             'warehouse_path': self.warehouse_path,
         }
 
-        yield PreLoadWarehouseTask(schema=self.schema, credentials=self.credentials)
+        yield PreLoadWarehouseTask(schema=self.schema, credentials=self.credentials, marker_schema=self.marker_schema)
         yield (
             LoadInternalReportingCertificatesToWarehouse(
                 date=self.date,
@@ -161,7 +161,7 @@ class LoadWarehouse(WarehouseMixin, luigi.WrapperTask):
                 **kwargs
             )
         )
-        yield PostLoadWarehouseTask(schema=self.schema, credentials=self.credentials)
+        yield PostLoadWarehouseTask(schema=self.schema, credentials=self.credentials, marker_schema=self.marker_schema)
 
     def output(self):
         return [task.output() for task in self.requires()]
