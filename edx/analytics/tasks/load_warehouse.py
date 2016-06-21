@@ -147,35 +147,35 @@ class LoadWarehouse(WarehouseMixin, luigi.WrapperTask):
                 date=self.date,
                 **kwargs
             ),
-            LoadInternalReportingCountryToWarehouse(
-                date=self.date,
-                n_reduce_tasks=self.n_reduce_tasks,
-                **kwargs
-            ),
-            LoadInternalReportingCourseToWarehouse(
-                date=self.date,
-                n_reduce_tasks=self.n_reduce_tasks,
-                **kwargs
-            ),
-            LoadInternalReportingUserCourseToWarehouse(
-                date=self.date,
-                n_reduce_tasks=self.n_reduce_tasks,
-                **kwargs
-            ),
-            LoadInternalReportingUserActivityToWarehouse(
-                date=self.date,
-                n_reduce_tasks=self.n_reduce_tasks,
-                **kwargs
-            ),
-            LoadInternalReportingUserToWarehouse(
-                date=self.date,
-                n_reduce_tasks=self.n_reduce_tasks,
-                **kwargs
-            ),
-            DailyLoadSubjectsToVerticaTask(
-                date=self.date,
-                **kwargs
-            )
+            # LoadInternalReportingCountryToWarehouse(
+            #     date=self.date,
+            #     n_reduce_tasks=self.n_reduce_tasks,
+            #     **kwargs
+            # ),
+            # LoadInternalReportingCourseToWarehouse(
+            #     date=self.date,
+            #     n_reduce_tasks=self.n_reduce_tasks,
+            #     **kwargs
+            # ),
+            # LoadInternalReportingUserCourseToWarehouse(
+            #     date=self.date,
+            #     n_reduce_tasks=self.n_reduce_tasks,
+            #     **kwargs
+            # ),
+            # LoadInternalReportingUserActivityToWarehouse(
+            #     date=self.date,
+            #     n_reduce_tasks=self.n_reduce_tasks,
+            #     **kwargs
+            # ),
+            # LoadInternalReportingUserToWarehouse(
+            #     date=self.date,
+            #     n_reduce_tasks=self.n_reduce_tasks,
+            #     **kwargs
+            # ),
+            # DailyLoadSubjectsToVerticaTask(
+            #     date=self.date,
+            #     **kwargs
+            # )
         )
 
     def output(self):
