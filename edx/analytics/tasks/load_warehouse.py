@@ -129,6 +129,7 @@ class LoadWarehouse(WarehouseMixin, luigi.WrapperTask):
     def requires(self):
         kwargs = {
             'schema': self.schema + '_loading',
+            'marker_schema': self.marker_schema,
             'credentials': self.credentials,
             'overwrite': self.overwrite,
             'warehouse_path': self.warehouse_path,
