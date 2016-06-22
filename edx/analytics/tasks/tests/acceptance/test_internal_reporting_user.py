@@ -22,7 +22,7 @@ class InternalReportingUserLoadAcceptanceTest(AcceptanceTestCase):
     """End-to-end test of the workflow to load the internal reporting warehouse's user table."""
 
     INPUT_FILE = 'location_by_course_tracking.log'
-    DATE = '2014-07-01'
+    DATE = '2014-07-21'
 
     def setUp(self):
         super(InternalReportingUserLoadAcceptanceTest, self).setUp()
