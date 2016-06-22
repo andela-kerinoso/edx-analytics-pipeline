@@ -22,6 +22,7 @@ class InternalReportingUserLoadAcceptanceTest(AcceptanceTestCase):
     """End-to-end test of the workflow to load the internal reporting warehouse's user table."""
 
     INPUT_FILE = 'location_by_course_tracking.log'
+    INTERVAL = '2014-07-21-2014-07-21'
     DATE = '2014-07-21'
 
     def setUp(self):
@@ -40,7 +41,7 @@ class InternalReportingUserLoadAcceptanceTest(AcceptanceTestCase):
 
         self.task.launch([
             'ImportLastCountryOfUserToHiveTask',
-            '--interval', self.DATE,
+            '--interval', self.INTERVAL,
             '--n-reduce-tasks', str(self.NUM_REDUCERS),
         ])
 
