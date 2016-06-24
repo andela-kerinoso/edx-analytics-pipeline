@@ -7,7 +7,7 @@ from itertools import chain
 
 import luigi
 import luigi.configuration
-from luigi.contrib.mysqldb import MySqlTarget
+from luigi.postgres import PostgresTarget
 
 from edx.analytics.tasks.url import ExternalURL
 from edx.analytics.tasks.util.overwrite import OverwriteOutputMixin
@@ -15,9 +15,9 @@ from edx.analytics.tasks.util.overwrite import OverwriteOutputMixin
 log = logging.getLogger(__name__)
 
 try:
-    import mysql.connector
-    from mysql.connector.errors import ProgrammingError
-    from mysql.connector import errorcode
+    import psycopg2
+    from psycopg2 import ProgrammingError
+    from psycopg2 import errorcodes
     mysql_client_available = True
 except ImportError:
     log.warn('Unable to import mysql client libraries')
@@ -88,7 +88,7 @@ class MysqlInsertTask(MysqlInsertTaskMixin, luigi.Task):
     @property
     def auto_primary_key(self):
         """Tuple defining name and definition of auto-incrementing primary key, or None."""
-        return ('id', 'BIGINT(20) NOT NULL AUTO_INCREMENT')
+        return ('id', 'SERIAL')
 
     @property
     def default_columns(self):
@@ -131,19 +131,30 @@ class MysqlInsertTask(MysqlInsertTaskMixin, luigi.Task):
         columns.extend(self.default_columns)
         if self.auto_primary_key is not None:
             columns.append(("PRIMARY KEY", "({name})".format(name=self.auto_primary_key[0])))
-        for indexed_cols in self.indexes:
-            columns.append(("INDEX", "({cols})".format(cols=','.join(indexed_cols))))
         for key in self.keys:
             columns.append((key[0], "({cols})".format(cols=','.join(key[1]))))
 
         coldefs = ','.join(
             '{name} {definition}'.format(name=name, definition=definition) for name, definition in columns
         )
-        query = "CREATE TABLE IF NOT EXISTS {table} ({coldefs})".format(
-            table=self.table, coldefs=coldefs
-        )
-        log.debug(query)
-        connection.cursor().execute(query)
+
+        cursor = connection.cursor()
+        query = "SELECT 1 FROM pg_catalog.pg_tables WHERE schemaname = 'public' AND tablename = '{table}'".format(table=self.table)
+        cursor.execute(query)
+        if not cursor.fetchone():
+            query = "CREATE TABLE {table} ({coldefs})".format(table=self.table, coldefs=coldefs)
+            log.debug(query)
+            cursor.execute(query)
+
+
+        for x in self.indexes:
+            col_index = ','.join(
+                    '{name}'.format(name=name) for name in x
+            )
+
+        query_new = "CREATE INDEX ON {table} ({coldefs})".format(table=self.table, coldefs=col_index)
+        log.debug(query_new)
+        cursor.execute(query_new)
 
     def create_database(self):
         """Create the database if it doesn't exist yet."""
@@ -152,18 +163,24 @@ class MysqlInsertTask(MysqlInsertTaskMixin, luigi.Task):
 
         # The default behavior of MysqlTarget is to connect to a specific database, which will fail since the database
         # doesn't exist yet, so we make our own connection here that is not attached to a specific database.
-        connection = mysql.connector.connect(
+        connection = psycopg2.connect(
+            dbname='compose',
             user=output_target.user,
             password=output_target.password,
             host=output_target.host,
-            port=output_target.port,
-            autocommit=True  # These operations autocommit anyway.
+            port=output_target.port
         )
+        connection.autocommit = True
+
         try:
             cursor = connection.cursor()
-            query = "CREATE DATABASE IF NOT EXISTS {db}".format(db=self.database)
+            query = "SELECT 1 FROM pg_database WHERE datname = '{db}'".format(db=self.database)
             log.debug(query)
             cursor.execute(query)
+            if not cursor.fetchone():
+                query = "CREATE DATABASE {db}".format(db=self.database)
+                log.debug(query)
+                cursor.execute(query)
         finally:
             connection.close()
 
@@ -216,13 +233,13 @@ class MysqlInsertTask(MysqlInsertTaskMixin, luigi.Task):
             # first clear the appropriate rows from the luigi mysql marker table
             marker_table = self.output().marker_table  # side-effect: sets self.output_target if it's None
             try:
-                query = "DELETE FROM {marker_table} where `target_table`='{target_table}'".format(
+                query = "DELETE FROM {marker_table} where target_table='{target_table}'".format(
                     marker_table=marker_table,
                     target_table=self.table,
                 )
                 connection.cursor().execute(query)
-            except mysql.connector.Error as excp:  # handle the case where the marker_table has yet to be created
-                if excp.errno == errorcode.ER_NO_SUCH_TABLE:
+            except psycopg2.Error as excp:  # handle the case where the marker_table has yet to be created
+                if excp.pgcode == errorcodes.FDW_TABLE_NOT_FOUND:
                     pass
                 else:
                     raise
@@ -325,7 +342,7 @@ class MysqlInsertTask(MysqlInsertTaskMixin, luigi.Task):
             # table with impunity from other sessions.
             connection.cursor().execute("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED")
 
-            self.init_copy(connection)
+            # self.init_copy(connection)
             cursor = connection.cursor()
             self.insert_rows(cursor)
 
@@ -364,7 +381,7 @@ def coerce_for_mysql_connect(input):
     return input
 
 
-class CredentialFileMysqlTarget(MySqlTarget):
+class CredentialFileMysqlTarget(PostgresTarget):
     """
     Represents a table in MySQL, is complete when the update_id is the same as a previous successful execution.
 
@@ -406,24 +423,24 @@ class CredentialFileMysqlTarget(MySqlTarget):
         that other workflows that are being committed can also update the marker table while this transaction is being
         committed.
         """
-        connection = self.connect(autocommit=True)
+        connection = self.connect()
+        connection.autocommit = True
         cursor = connection.cursor()
         try:
             cursor.execute(
-                """ CREATE TABLE IF NOT EXISTS {marker_table} (
-                        id            BIGINT(20)    NOT NULL AUTO_INCREMENT,
+                """ CREATE TABLE {marker_table} (
+                        id            SERIAL,
                         update_id     VARCHAR(128)  NOT NULL,
                         target_table  VARCHAR(128),
                         inserted      TIMESTAMP DEFAULT NOW(),
-                        PRIMARY KEY (update_id),
-                        KEY id (id),
-                        INDEX target_table (target_table)
+                        PRIMARY KEY (update_id)
                     )
                 """
                 .format(marker_table=self.marker_table)
             )
-        except mysql.connector.Error as e:
-            if e.errno == errorcode.ER_TABLE_EXISTS_ERROR:
+            cursor.execute('CREATE INDEX ON {table} (target_table)'.format(table=self.marker_table))
+        except psycopg2.Error as e:
+            if e.pgcode == errorcodes.DUPLICATE_TABLE:
                 pass
             else:
                 raise
@@ -448,13 +465,13 @@ class IncrementalMysqlInsertTask(MysqlInsertTask):
             # side-effect: sets self.output_target if it's None
             marker_table = self.output().marker_table  # pylint: disable=no-member
             try:
-                query = "DELETE FROM {marker_table} where `update_id`='{update_id}'".format(
+                query = "DELETE FROM {marker_table} where update_id='{update_id}'".format(
                     marker_table=marker_table,
                     update_id=self.update_id(),
                 )
                 connection.cursor().execute(query)
-            except mysql.connector.Error as excp:  # handle the case where the marker_table has yet to be created
-                if excp.errno == errorcode.ER_NO_SUCH_TABLE:
+            except psycopg2.Error as excp:  # handle the case where the marker_table has yet to be created
+                if e.pgcode == errorcodes.DUPLICATE_TABLE:
                     pass
                 else:
                     raise
