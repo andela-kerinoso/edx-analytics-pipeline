@@ -11,6 +11,7 @@ from luigi.postgres import PostgresTarget
 
 from edx.analytics.tasks.url import ExternalURL
 from edx.analytics.tasks.util.overwrite import OverwriteOutputMixin
+import re
 
 log = logging.getLogger(__name__)
 
@@ -143,6 +144,8 @@ class MysqlInsertTask(MysqlInsertTaskMixin, luigi.Task):
         cursor.execute(query)
         if not cursor.fetchone():
             query = "CREATE TABLE {table} ({coldefs})".format(table=self.table, coldefs=coldefs)
+            query = re.sub(r'INT\(\d{1,}\)', 'INTEGER', query)
+            query = query.replace('DATETIME', 'TIMESTAMP')
             log.debug(query)
             cursor.execute(query)
 
@@ -307,8 +310,9 @@ class MysqlInsertTask(MysqlInsertTaskMixin, luigi.Task):
         value_list = []
         row_count = 0
         for row_count, row in enumerate(self.rows(), start=1):
-            entry = tuple([coerce_for_mysql_connect(elem) for elem in row])
-            value_list.append(entry)
+            entry = [coerce_for_mysql_connect(elem) for elem in row]
+            entry[2] = None
+            value_list.append(tuple(entry))
             if row_count % self.insert_chunk_size == 0:
                 self._execute_insert_query(cursor, value_list, column_names)
                 value_list = []
