@@ -107,7 +107,7 @@
       when: ansible_distribution in common_redhat_variants
       
     - name: analytics tasks repository checked out
-      git: repo={{ repo }} dest={{ working_repo_dir }} version=master
+      git: repo={{ repo }} dest={{ working_repo_dir }} version={{ branch }}
 
     - name: branch fetched
       command: git fetch --all chdir={{ working_repo_dir }}
