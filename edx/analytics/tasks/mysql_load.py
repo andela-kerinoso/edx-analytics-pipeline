@@ -310,9 +310,8 @@ class MysqlInsertTask(MysqlInsertTaskMixin, luigi.Task):
         value_list = []
         row_count = 0
         for row_count, row in enumerate(self.rows(), start=1):
-            entry = [coerce_for_mysql_connect(elem) for elem in row]
-            entry[2] = None
-            value_list.append(tuple(entry))
+            entry = tuple([coerce_for_mysql_connect(elem) for elem in row])
+            value_list.append(entry)
             if row_count % self.insert_chunk_size == 0:
                 self._execute_insert_query(cursor, value_list, column_names)
                 value_list = []
