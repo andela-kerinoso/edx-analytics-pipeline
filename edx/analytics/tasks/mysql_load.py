@@ -17,8 +17,7 @@ log = logging.getLogger(__name__)
 
 try:
     import psycopg2
-    from psycopg2 import ProgrammingError
-    from psycopg2 import errorcodes
+    from psycopg2 import ProgrammingError, IntegrityError, errorcodes
     mysql_client_available = True
 except ImportError:
     log.warn('Unable to import mysql client libraries')
@@ -354,6 +353,8 @@ class MysqlInsertTask(MysqlInsertTaskMixin, luigi.Task):
 
             # commit only if both operations completed successfully.
             connection.commit()
+        except IntegrityError:
+            connection.rollback()
         except:
             connection.rollback()
             raise
