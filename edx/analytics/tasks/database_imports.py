@@ -270,11 +270,23 @@ class ImportAuthUserProfileTask(ImportMysqlToHiveTableTask):
     @property
     def columns(self):
         return [
-            ('user_id', 'INT'),
+            ('id', 'INT'),
             ('name', 'STRING'),
-            ('gender', 'STRING'),
+            ('meta', 'STRING'),
+            ('courseware', 'STRING'),
+            ('language', 'STRING'),
+            ('location', 'STRING'),
             ('year_of_birth', 'INT'),
+            ('gender', 'STRING'),
             ('level_of_education', 'STRING'),
+            ('mailing_address', 'STRING'),
+            ('city', 'STRING'),
+            ('country', 'STRING'),
+            ('goals', 'STRING'),
+            ('allow_certificate', 'TINYINT'),
+            ('bio', 'STRING'),
+            ('profile_image_uploaded_at', 'TIMESTAMP'),
+            ('user_id', 'INT'),
         ]
 
 
