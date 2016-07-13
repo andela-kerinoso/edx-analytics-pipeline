@@ -242,7 +242,7 @@ class MysqlInsertTask(MysqlInsertTaskMixin, luigi.Task):
                 )
                 connection.cursor().execute(query)
             except psycopg2.Error as excp:  # handle the case where the marker_table has yet to be created
-                if excp.pgcode == errorcodes.FDW_TABLE_NOT_FOUND:
+                if excp.pgcode == errorcodes.UNDEFINED_TABLE:
                     pass
                 else:
                     raise
@@ -442,8 +442,8 @@ class CredentialFileMysqlTarget(PostgresTarget):
                 .format(marker_table=self.marker_table)
             )
             cursor.execute('CREATE INDEX ON {table} (target_table)'.format(table=self.marker_table))
-        except psycopg2.Error as e:
-            if e.pgcode == errorcodes.DUPLICATE_TABLE:
+        except psycopg2.Error as excp:
+            if excp.pgcode == errorcodes.DUPLICATE_TABLE:
                 pass
             else:
                 raise
@@ -474,7 +474,7 @@ class IncrementalMysqlInsertTask(MysqlInsertTask):
                 )
                 connection.cursor().execute(query)
             except psycopg2.Error as excp:  # handle the case where the marker_table has yet to be created
-                if e.pgcode == errorcodes.DUPLICATE_TABLE:
+                if excp.pgcode == errorcodes.UNDEFINED_TABLE:
                     pass
                 else:
                     raise
