@@ -167,7 +167,7 @@ class MysqlInsertTask(MysqlInsertTaskMixin, luigi.Task):
         # The default behavior of MysqlTarget is to connect to a specific database, which will fail since the database
         # doesn't exist yet, so we make our own connection here that is not attached to a specific database.
         connection = psycopg2.connect(
-            dbname='compose',
+            dbname='compose', # TODO get this value from external file.
             user=output_target.user,
             password=output_target.password,
             host=output_target.host,
