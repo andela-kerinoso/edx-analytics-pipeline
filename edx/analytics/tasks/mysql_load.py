@@ -3,6 +3,7 @@ Support for loading data into a Mysql database.
 """
 import json
 import logging
+import re
 from itertools import chain
 
 import luigi
@@ -11,7 +12,6 @@ from luigi.postgres import PostgresTarget
 
 from edx.analytics.tasks.url import ExternalURL
 from edx.analytics.tasks.util.overwrite import OverwriteOutputMixin
-import re
 
 log = logging.getLogger(__name__)
 
