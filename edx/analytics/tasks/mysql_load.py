@@ -344,9 +344,7 @@ class MysqlInsertTask(MysqlInsertTaskMixin, luigi.Task):
             # table with impunity from other sessions.
             connection.cursor().execute("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED")
 
-            ## Tables get deleted by this call which later leads to `table does not exist` error on call to insert_rows()
-            ## TODO Look into this later
-            # self.init_copy(connection)
+            self.init_copy(connection)
             cursor = connection.cursor()
             self.insert_rows(cursor)
 
