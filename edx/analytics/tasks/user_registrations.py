@@ -23,8 +23,8 @@ class UserRegistrationsPerDay(MysqlSelectTask):
 
     @property
     def query(self):
-        return ("SELECT DATE(date_joined), COUNT(1) FROM `auth_user`"
-                " WHERE `date_joined` >= %s AND `date_joined` < %s GROUP BY DATE(date_joined) ORDER BY 1 ASC")
+        return ("SELECT DATE(date_joined), COUNT(1) FROM auth_user"
+                " WHERE date_joined >= %s AND date_joined < %s GROUP BY DATE(date_joined) ORDER BY 1 ASC")
 
     @property
     def query_parameters(self):
