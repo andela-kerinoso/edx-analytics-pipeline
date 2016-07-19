@@ -11,8 +11,8 @@ isoweek==1.3.0		# BSD
 mechanize==0.2.5	# BSD
 http://cdn.mysql.com/Downloads/Connector-Python/mysql-connector-python-1.2.2.zip  	# GPL v2 with FOSS License Exception
 ndg-httpsclient==0.4.0  # BSD
-numpy==1.8.0 		# BSD
-pandas==0.13.0 		# BSD
+numpy==1.11.1 		# BSD
+pandas==0.18.1         # BSD
 paypalrestsdk==1.9.0    # Paypal SDK License
 pbr==0.5.23 		# Apache
 psycopg2==2.6.1         # LGPL
@@ -21,7 +21,7 @@ pyasn1==0.1.7           # BSD
 pycparser==2.13         # BSD
 pygeoip==0.3.1 		# LGPL
 pymongo==2.7.2		# Apache 2.0
-python-cjson==1.0.5	# LGPL
+python-cjson==1.1.0	# LGPL
 python-dateutil==2.2 	# BSD
 python-gnupg==0.3.6	# BSD
 pytz==2014.4		# ZPL
