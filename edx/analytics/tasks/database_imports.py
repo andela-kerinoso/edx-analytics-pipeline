@@ -219,13 +219,14 @@ class ImportStudentCourseEnrollmentTask(ImportMysqlToHiveTableTask):
 
     @property
     def columns(self):
+        # This was re-ordered to prevent column mismatch in hive-metastore.
         return [
             ('id', 'INT'),
-            ('user_id', 'INT'),
             ('course_id', 'STRING'),
-            ('created', 'TIMESTAMP'),
+            ('created', 'STRING'),
             ('is_active', 'BOOLEAN'),
             ('mode', 'STRING'),
+            ('user_id', 'INT'),
         ]
 
 
@@ -241,15 +242,19 @@ class ImportAuthUserTask(ImportMysqlToHiveTableTask):
     def columns(self):
         # Fields not included are 'password', 'first_name' and 'last_name'.
         # In our LMS, the latter two are always empty.
+        # Those omitted fields are included to prevent column mismatch in hive-metastore.
         return [
             ('id', 'INT'),
-            ('username', 'STRING'),
-            ('last_login', 'TIMESTAMP'),
-            ('date_joined', 'TIMESTAMP'),
-            ('is_active', 'BOOLEAN'),
+            ('password', 'STRING'),
+            ('last_login', 'STRING'),
             ('is_superuser', 'BOOLEAN'),
-            ('is_staff', 'BOOLEAN'),
+            ('username', 'STRING'),
+            ('first_name', 'STRING'),
+            ('last_name', 'STRING'),
             ('email', 'STRING'),
+            ('is_staff', 'BOOLEAN'),
+            ('is_active', 'BOOLEAN'),
+            ('date_joined', 'STRING'),
         ]
 
 
@@ -265,11 +270,26 @@ class ImportAuthUserProfileTask(ImportMysqlToHiveTableTask):
 
     @property
     def columns(self):
+        # This was re-ordered, with inclusion of other fields gotten from lms auth_userprofile table,
+        # to prevent column mismatch in hive-metastore.
         return [
-            ('user_id', 'INT'),
-            ('gender', 'STRING'),
+            ('id', 'INT'),
+            ('name', 'STRING'),
+            ('meta', 'STRING'),
+            ('courseware', 'STRING'),
+            ('language', 'STRING'),
+            ('location', 'STRING'),
             ('year_of_birth', 'INT'),
+            ('gender', 'STRING'),
             ('level_of_education', 'STRING'),
+            ('mailing_address', 'STRING'),
+            ('city', 'STRING'),
+            ('country', 'STRING'),
+            ('goals', 'STRING'),
+            ('allow_certificate', 'TINYINT'),
+            ('bio', 'STRING'),
+            ('profile_image_uploaded_at', 'TIMESTAMP'),
+            ('user_id', 'INT'),
         ]
 
 
