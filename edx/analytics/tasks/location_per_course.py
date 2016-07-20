@@ -298,7 +298,7 @@ class InsertToMysqlCourseEnrollByCountryTaskBase(MysqlInsertTask):  # pylint: di
         return [
             ('date', 'DATE NOT NULL'),
             ('course_id', 'VARCHAR(255) NOT NULL'),
-            ('country_code', 'VARCHAR(10) NOT NULL'),
+            ('country_code', 'VARCHAR(10)'), # this is required for cases where some enrollments have no entry in the tracking.log
             ('count', 'INT(11) NOT NULL'),
             ('cumulative_count', 'INT(11) NOT NULL'),
         ]
