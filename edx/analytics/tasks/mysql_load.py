@@ -138,15 +138,16 @@ class MysqlInsertTask(MysqlInsertTaskMixin, luigi.Task):
             log.debug(query)
             cursor.execute(query)
 
+        if self.indexes:
+            for x in self.indexes:
+                col_index = ','.join(
+                        '{name}'.format(name=name) for name in x
+                )
 
-        for x in self.indexes:
-            col_index = ','.join(
-                    '{name}'.format(name=name) for name in x
-            )
-
-        query_new = "CREATE INDEX ON {table} ({coldefs})".format(table=self.table, coldefs=col_index)
-        log.debug(query_new)
-        cursor.execute(query_new)
+            query_new = "CREATE INDEX ON {table} ({coldefs})".format(table=self.table, coldefs=col_index)
+            log.debug(query_new)
+            cursor.execute(query_new)
+        connection.commit()
 
     def create_database(self):
         """Create the database if it doesn't exist yet."""
@@ -235,11 +236,13 @@ class MysqlInsertTask(MysqlInsertTaskMixin, luigi.Task):
                     pass
                 else:
                     raise
+            connection.commit()
 
+            ### This part is commented out to retain previous results.
             # Use "DELETE" instead of TRUNCATE since TRUNCATE forces an implicit commit before it executes which would
             # commit the currently open transaction before continuing with the copy.
-            query = "DELETE FROM {table}".format(table=self.table)
-            connection.cursor().execute(query)
+            # query = "DELETE FROM {table}".format(table=self.table)
+            # connection.cursor().execute(query)
 
     def _execute_insert_query(self, cursor, value_list, column_names):
         """
@@ -343,8 +346,6 @@ class MysqlInsertTask(MysqlInsertTaskMixin, luigi.Task):
 
             # commit only if both operations completed successfully.
             connection.commit()
-        except IntegrityError:
-            connection.rollback()
         except:
             connection.rollback()
             raise
